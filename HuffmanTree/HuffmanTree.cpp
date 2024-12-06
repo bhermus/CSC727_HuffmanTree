@@ -4,17 +4,86 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <stdexcept> // For exception inherited classes
+
+// Exception classes
+class NoMem : public std::exception {
+    const char* what() const noexcept override { return "Heap is full."; }
+};
+
+class OutOfBounds : public std::exception {
+    const char* what() const noexcept override { return "Heap is empty."; }
+};
+
+// MinHeap definition (from course website)
+template <class T>
+class MinHeap {
+public:
+    MinHeap(int MSize) {
+        MaxSize = MSize;
+        heap = new T[MaxSize + 1];
+        Size = 0;
+    }
+    ~MinHeap() { delete[] heap; }
+    MinHeap<T>& Insert(T& x);
+    MinHeap<T>& Delete(T& x);
+    int Size;
+
+private:
+    int MaxSize;
+    T* heap;
+};
+
+template <class T>
+MinHeap<T>& MinHeap<T>::Insert(T& x) {
+    if (Size == MaxSize)
+        throw NoMem();
+    else {
+        int i = ++Size;
+        while (i != 1 && x < heap[i / 2]) {
+            heap[i] = heap[i / 2];
+            i /= 2;
+        }
+        heap[i] = x;
+        return *this;
+    }
+}
+
+template <class T>
+MinHeap<T>& MinHeap<T>::Delete(T& x) {
+    if (Size == 0) throw OutOfBounds();
+    x = heap[1];  // root has the smallest key
+    T y = heap[Size--]; // last element
+    int vacant = 1;
+    int child = 2; // make child = left child
+    while (child <= Size) {
+        if (child < Size && heap[child + 1] < heap[child]) ++child;
+        // right child < left child
+        if (!(heap[child] < y)) break;
+        heap[vacant] = heap[child]; // move smaller child
+        vacant = child; // new vacant
+        child = child * 2; // new child of vacant
+    }
+    heap[vacant] = y;
+    return *this;
+}
 
 class HuffmanTree {
 public:
-    // Struct to hold letter and frequency
+    // Struct to hold each letter and its frequency
     struct Node {
         char letter;
         int frequency;
         Node* left;
         Node* right;
 
+        Node() : letter('\0'), frequency(0), left(nullptr), right(nullptr) {}
         Node(char l, int f) : letter(l), frequency(f), left(nullptr), right(nullptr) {}
+
+        // Comparison operator overload
+        bool operator<(const Node& other) const {
+            return frequency < other.frequency;
+        }
     };
 
     // Method to initialize letters and frequencies
@@ -81,16 +150,43 @@ public:
 
             std::cout << "Remaining frequency assigned to " << letters[9] << ": " << frequencies[9] << "%\n";
         }
+
+        // Populate the nodes vector
+        for (size_t i = 0; i < letters.size(); ++i) {
+            nodes.push_back(new Node(letters[i], frequencies[i]));
+        }
+
         // Print the initialized letters and frequencies
         std::cout << "Initialized letters and frequencies:\n";
         for (size_t i = 0; i < letters.size(); ++i) {
             std::cout << letters[i] << ": " << frequencies[i] << "%\n";
         }
     }
+
+    void buildTree() {
+        // Create a MinHeap with size equal to the number of nodes
+        MinHeap<Node> heap(nodes.size());
+
+        // Insert all nodes into the MinHeap
+        for (Node* node : nodes) {
+            heap.Insert(*node);
+        }
+
+        // Output heap elements to verify
+        std::cout << "Nodes added to MinHeap (in frequency order):\n";
+        while (heap.Size > 0) {
+            Node minNode(' ', 0);
+            heap.Delete(minNode);
+            std::cout << "Letter: " << minNode.letter << ", Frequency: " << minNode.frequency << "\n";
+        }
+    }
+private:
+    std::vector<Node*> nodes;
 };
 
 int main() {
     HuffmanTree huffmanTree;
     huffmanTree.initialize();
+    huffmanTree.buildTree();
     return 0;
 }
