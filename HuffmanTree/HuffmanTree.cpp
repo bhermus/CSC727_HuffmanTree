@@ -165,19 +165,52 @@ public:
 
     void buildTree() {
         // Create a MinHeap with size equal to the number of nodes
-        MinHeap<Node> heap(nodes.size());
+        MinHeap<Node*> heap(nodes.size());
 
         // Insert all nodes into the MinHeap
         for (Node* node : nodes) {
-            heap.Insert(*node);
+            heap.Insert(node);
         }
 
-        // Output heap elements to verify
-        std::cout << "Nodes added to MinHeap (in frequency order):\n";
-        while (heap.Size > 0) {
-            Node minNode(' ', 0);
-            heap.Delete(minNode);
-            std::cout << "Letter: " << minNode.letter << ", Frequency: " << minNode.frequency << "\n";
+        // Build the Huffman Tree
+        while (heap.Size > 1) {
+            // Delete the two smallest nodes from the heap
+            Node* leftNode = nullptr;
+            Node* rightNode = nullptr;
+            heap.Delete(leftNode);
+            heap.Delete(rightNode);
+
+            // Create a new parent node with the combined frequency
+            Node* parentNode = new Node();
+            parentNode->frequency = leftNode->frequency + rightNode->frequency;
+            parentNode->left = leftNode;
+            parentNode->right = rightNode;
+
+            // Insert the parent node back into the heap
+            heap.Insert(parentNode);
+        }
+
+        // The final node is the root of the Huffman Tree
+        heap.Delete(this->root);
+
+        std::cout << "Huffman Tree built successfully. Root frequency: " << root->frequency << "\n";
+    }
+
+    void viewCodes() {
+        if (!root) {
+            std::cout << "Huffman Tree has not been built yet. Please run 'buildTree' first.\n";
+            return;
+        }
+
+        std::cout << "Huffman Codes for each letter:\n";
+        std::vector<std::string> codes(26, "");  // Assuming letters are A-Z
+
+        // Traverse the tree and generate the codes for each letter
+        generateCodes(root, "", codes);
+
+        // Output the codes for each letter in the order the letters were provided
+        for (size_t i = 0; i < nodes.size(); ++i) {
+            std::cout << nodes[i]->letter << ": " << codes[i] << "\n";
         }
     }
 
@@ -188,12 +221,31 @@ public:
     }
 
 private:
+    Node* root = nullptr; 
     std::vector<Node*> nodes;
+
+    void generateCodes(Node* node, const std::string& currentCode, std::vector<std::string>& codes) {
+        if (!node) return;
+
+        // If the node is a leaf (it has no children), store its code
+        if (!node->left && !node->right) {
+            // Map the current code to the correct letter in the order
+            codes[node->letter - 'A'] = currentCode;  // Assume letters are uppercase A-Z
+        }
+
+        // Traverse left (add '0' to the code)
+        generateCodes(node->left, currentCode + "0", codes);
+
+        // Traverse right (add '1' to the code)
+        generateCodes(node->right, currentCode + "1", codes);
+    }
 };
 
 int main() {
     HuffmanTree huffmanTree;
     huffmanTree.initialize();
     huffmanTree.buildTree();
+    huffmanTree.viewCodes();
+
     return 0;
 }
