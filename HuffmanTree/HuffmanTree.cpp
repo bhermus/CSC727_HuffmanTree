@@ -56,7 +56,7 @@ public:
             }
         }
 
-        // Prompt for frequencies
+        // Prompt for frequencies if not using default
         if (frequencies.empty()) {
             int totalFrequency = 0;
             for (size_t i = 0; i < 9; ++i) {
