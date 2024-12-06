@@ -180,6 +180,13 @@ public:
             std::cout << "Letter: " << minNode.letter << ", Frequency: " << minNode.frequency << "\n";
         }
     }
+
+    ~HuffmanTree() {
+        for (Node* node : nodes) {
+            delete node;
+        }
+    }
+
 private:
     std::vector<Node*> nodes;
 };
