@@ -15,7 +15,7 @@ class OutOfBounds : public std::exception {
     const char* what() const noexcept override { return "Heap is empty."; }
 };
 
-// MinHeap definition (from course website)
+// MinHeap definition (from course website, I modified it for this particular project)
 template <class T>
 class MinHeap {
 public:
@@ -27,6 +27,7 @@ public:
     ~MinHeap() { delete[] heap; }
     MinHeap<T>& Insert(T& x);
     MinHeap<T>& Delete(T& x);
+    void printHeap() const;  // New method to print the heap
     int Size;
 
 private:
@@ -40,7 +41,7 @@ MinHeap<T>& MinHeap<T>::Insert(T& x) {
         throw NoMem();
     else {
         int i = ++Size;
-        while (i != 1 && x < heap[i / 2]) {
+        while (i != 1 && x->frequency < heap[i / 2]->frequency) {
             heap[i] = heap[i / 2];
             i /= 2;
         }
@@ -57,9 +58,9 @@ MinHeap<T>& MinHeap<T>::Delete(T& x) {
     int vacant = 1;
     int child = 2; // make child = left child
     while (child <= Size) {
-        if (child < Size && heap[child + 1] < heap[child]) ++child;
-        // right child < left child
-        if (!(heap[child] < y)) break;
+        // Compare nodes based on frequency directly
+        if (child < Size && heap[child + 1]->frequency < heap[child]->frequency) ++child;
+        if (!(heap[child]->frequency < y->frequency)) break;
         heap[vacant] = heap[child]; // move smaller child
         vacant = child; // new vacant
         child = child * 2; // new child of vacant
@@ -67,6 +68,21 @@ MinHeap<T>& MinHeap<T>::Delete(T& x) {
     heap[vacant] = y;
     return *this;
 }
+
+template <class T>
+void MinHeap<T>::printHeap() const {
+    if (Size == 0) {
+        std::cout << "Heap is empty.\n";
+        return;
+    }
+
+    std::cout << "Heap elements (Letter, Frequency): ";
+    for (int i = 1; i <= Size; ++i) {
+        std::cout << "(" << heap[i]->letter << ", " << heap[i]->frequency << ") ";
+    }
+    std::cout << std::endl;
+}
+
 
 class HuffmanTree {
 public:
@@ -174,17 +190,24 @@ public:
 
         // Build the Huffman Tree
         while (heap.Size > 1) {
+            heap.printHeap();
+
             // Delete the two smallest nodes from the heap
             Node* leftNode = nullptr;
             Node* rightNode = nullptr;
             heap.Delete(leftNode);
             heap.Delete(rightNode);
 
+            std::cout << "Deleted nodes: (" << leftNode->letter << ", " << leftNode->frequency << ") "
+                << "and (" << rightNode->letter << ", " << rightNode->frequency << ")\n";
+
             // Create a new parent node with the combined frequency
             Node* parentNode = new Node();
             parentNode->frequency = leftNode->frequency + rightNode->frequency;
             parentNode->left = leftNode;
             parentNode->right = rightNode;
+
+            std::cout << "Inserted parent node: (" << parentNode->frequency << ")\n";
 
             // Insert the parent node back into the heap
             heap.Insert(parentNode);
@@ -203,14 +226,15 @@ public:
         }
 
         std::cout << "Huffman Codes for each letter:\n";
-        std::vector<std::string> codes(26, "");  // Assuming letters are A-Z
+        std::vector<std::string> codes(nodes.size(), ""); 
 
         // Traverse the tree and generate the codes for each letter
         generateCodes(root, "", codes);
 
         // Output the codes for each letter in the order the letters were provided
         for (size_t i = 0; i < nodes.size(); ++i) {
-            std::cout << nodes[i]->letter << ": " << codes[i] << "\n";
+            std::cout << nodes[i]->letter << ": "
+                << (codes[i].empty() ? "Not assigned" : codes[i]) << "\n";
         }
     }
 
@@ -229,8 +253,14 @@ private:
 
         // If the node is a leaf (it has no children), store its code
         if (!node->left && !node->right) {
-            // Map the current code to the correct letter in the order
-            codes[node->letter - 'A'] = currentCode;  // Assume letters are uppercase A-Z
+            // Find the index based on the position in the nodes list (order of input letters)
+            auto it = std::find_if(nodes.begin(), nodes.end(), [node](Node* n) {
+                return n->letter == node->letter;
+                });
+            if (it != nodes.end()) {
+                size_t index = std::distance(nodes.begin(), it);
+                codes[index] = currentCode;  
+            }
         }
 
         // Traverse left (add '0' to the code)
